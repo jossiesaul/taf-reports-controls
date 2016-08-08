@@ -1,0 +1,358 @@
+/* 
+Document   : reportsuite
+Created on : 12-Apr-2013, 09:59:37
+Author     : jossie
+Description:
+    Purpose of the stylesheet follows.
+*/
+
+#accordion-normal{
+    padding: 10px;
+    width: 908px;
+    max-height: 320px;
+}
+
+#accordion-resizer {
+padding: 10px;
+width: 908px;
+height: 820px;
+}
+
+.player {
+width: 500px;
+height: 300px;
+border: 2px groove gray;
+background: rgb(200, 200, 200);
+text-align: center;
+line-height: 300px;
+}
+.ui-tooltip {
+border: 1px solid white;
+background: rgba(20, 20, 20, 1);
+color: white;
+}
+.set {
+display: inline-block;
+}
+.notification {
+position: absolute;
+display: inline-block;
+font-size: 2em;
+padding: .5em;
+box-shadow: 2px 2px 5px -2px rgba(0,0,0,0.5);
+}
+
+#rrSummShow{
+text-align:center;
+font-size:25px;
+font-weight:bold;
+background-color: white;
+color: black;
+}
+
+#resPassedTextValue{
+text-align:center;
+color:green;
+font-weight:bold;
+}
+#resWarningTextValue{
+text-align:center;
+color:orange;
+font-weight:bold;
+}
+#resFailedTextValue{
+text-align:center;
+color:red;
+font-weight:bold;
+}
+
+#resPassedBgHighlight{
+text-align:center;
+background-color:#B2FFB2;
+font-weight:bold;
+color: darkgreen;
+}
+#resWarningBgHighlight{
+text-align:center;
+background-color:#FFEB99;
+font-weight:bold;
+color: darkorange;
+}
+#resFailedBgHighlight{
+text-align:center;
+background-color:#FFB2B2;
+font-weight:bold;
+color: darkred;
+}
+#resTAFErrorBgHighlight{
+text-align:center;
+background-color:#D0D0D0;;
+font-weight:bold;
+}
+
+#resPassedTextHighlight{
+color:green;
+font-weight:bold;
+}
+#resWarningTextHighlight{
+color:orange;
+font-weight:bold;
+}
+#resFailedTextHighlight{
+color:red;
+font-weight:bold;
+}
+
+#underlineAndBold{
+text-decoration: underline;
+font-weight: bold;
+}
+
+#tblOverrideBg
+{
+background-color: white;
+}
+
+.rrInfoBlock
+{
+    background-color: #FFD1D1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.075);
+    -moz-box-shadow: 0 1px 2px rgba(0,0,0,.075);
+    box-shadow: 0 1px 2px rgba(0,0,0,.075);
+}
+
+.rribExt
+{
+    margin-bottom: 10px;
+}
+
+.resultTable
+{
+    width: auto;
+    
+}
+.resultTable th
+{
+    text-align: center;
+}
+
+.resultTable td
+{
+    vertical-align: top;
+}
+
+.analysisSummary td
+{
+    text-align: center;
+}
+
+#alysSegments
+{
+border: 1px grey dashed;
+padding:5px 5px 5px 10px;
+-moz-border-radius: 15px;
+border-radius: 15px;
+width: auto;
+}
+
+.analysisFieldset h3
+{
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+#pageSublinks
+{
+    background-color: #999;
+    background-image: -webkit-linear-gradient(hsla(0,0%,100%,.05), hsla(0,0%,0%,.1));
+    background-image:    -moz-linear-gradient(hsla(0,0%,100%,.05), hsla(0,0%,0%,.1));
+    background-image:     -ms-linear-gradient(hsla(0,0%,100%,.05), hsla(0,0%,0%,.1));
+    background-image:      -o-linear-gradient(hsla(0,0%,100%,.05), hsla(0,0%,0%,.1));
+    background-image:         linear-gradient(hsla(0,0%,100%,.05), hsla(0,0%,0%,.1));
+    border: none;
+    border-radius: .5em;
+    box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,0.1),
+                inset 0 -.2em 0 hsla(0,0%,100%,.1),
+                inset 0 -.25em 0 hsla(0,0%,0%,.25),
+                0 .25em .25em hsla(0,0%,0%,.05);
+    color: white;
+    cursor: pointer;
+    display: inline-block;
+    font-family: sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    line-height: 1.5;
+    margin: 0 .5em 1em;
+    padding: .5em 1.5em .75em;
+    position: relative;
+    text-decoration: none;
+    text-shadow: 0 1px 1px hsla(0,0%,100%,.25);
+    vertical-align: middle;
+}
+
+#pageSublinks:hover
+{
+    outline: none;
+}
+#pageSublinks:hover,
+#pageSublinks:focus {
+    box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,.1),
+                inset 0 -.2em 0 hsla(0,0%,100%,.1),
+                inset 0 -.25em 0 hsla(0,0%,0%,.25),
+                inset 0 0 0 3em hsla(0,0%,100%,.2),
+                0 .25em .25em hsla(0,0%,0%,.05);
+}
+#pageSublinks.active {
+    box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,.1),
+                inset 0 0 0 3em hsla(0,0%,100%,.2),
+                inset 0 .25em .5em hsla(0,0%,0%,.05),
+                0 -1px 1px hsla(0,0%,0%,.1),
+                0 1px 1px hsla(0,0%,100%,.25);
+    margin-top: .25em;
+    outline: none;
+    padding-bottom: .5em;
+    background-color: black;
+}
+
+#alysTblHeading
+{
+-moz-box-shadow:    inset 0 0 10px #000000;
+   -webkit-box-shadow: inset 0 0 10px #000000;
+   box-shadow:         inset 0 0 10px #000000;
+}
+
+.rrSublinks a
+{
+ -moz-border-radius: 15px;
+border-radius: 15px;
+background-color: grey;
+padding: 8px;
+color: white;
+cursor: pointer;
+text-decoration: none;
+box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,0.1),
+                inset 0 -.2em 0 hsla(0,0%,100%,.1),
+                inset 0 -.25em 0 hsla(0,0%,0%,.25),
+                0 .25em .25em hsla(0,0%,0%,.05);
+}
+
+.rrSublinks a:hover
+{
+    background-color: black;    
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+     box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,.1),
+                inset 0 0 0 3em hsla(0,0%,100%,.2),
+                inset 0 .25em .5em hsla(0,0%,0%,.05),
+                0 -1px 1px hsla(0,0%,0%,.1),
+                0 1px 1px hsla(0,0%,100%,.25);
+}
+
+.rrSublinks a.active
+{
+    background-color: black;
+    font-weight: bold;
+    text-decoration: none;
+      box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,.1),
+                inset 0 0 0 3em hsla(0,0%,100%,.2),
+                inset 0 .25em .5em hsla(0,0%,0%,.05),
+                0 -1px 1px hsla(0,0%,0%,.1),
+                0 1px 1px hsla(0,0%,100%,.25);
+}
+
+.pageSubLink a
+{
+ -moz-border-radius: 15px;
+border-radius: 15px;
+background-color: grey;
+padding: 8px;
+color: white;
+cursor: pointer;
+text-decoration: none;
+box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,0.1),
+                inset 0 -.2em 0 hsla(0,0%,100%,.1),
+                inset 0 -.25em 0 hsla(0,0%,0%,.25),
+                0 .25em .25em hsla(0,0%,0%,.05);
+}
+
+.pageSubLink a:hover
+{
+    background-color: black;    
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+     box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,.1),
+                inset 0 0 0 3em hsla(0,0%,100%,.2),
+                inset 0 .25em .5em hsla(0,0%,0%,.05),
+                0 -1px 1px hsla(0,0%,0%,.1),
+                0 1px 1px hsla(0,0%,100%,.25);
+}
+
+.pageSubLink a.active
+{
+    background-color: black;
+    font-weight: bold;
+    text-decoration: none;
+      box-shadow: inset 0 0 0 1px hsla(0,0%,0%,.2),
+                inset 0 2px 0 hsla(0,0%,100%,.1),
+                inset 0 1.2em 0 hsla(0,0%,100%,.1),
+                inset 0 0 0 3em hsla(0,0%,100%,.2),
+                inset 0 .25em .5em hsla(0,0%,0%,.05),
+                0 -1px 1px hsla(0,0%,0%,.1),
+                0 1px 1px hsla(0,0%,100%,.25);
+}
+
+#analysisTabs.ui-widget
+{
+    overflow: auto;
+}
+
+#prOnTable{
+    font-weight: bold;
+    text-shadow: 0 0 5px #ECE9E9;
+}
+
+.statSummaryTablesOnGrid th{
+    text-align: center;
+}
+
+.statSummaryTablesOnGrid td{
+    text-align: center;
+}
+
+.passRateEyeCatchDp
+{
+    font-weight: bold;
+    font-size: 22px;
+}
+
+.EyeCatchDpText{
+    font-weight: bold;
+    font-size: 22px;
+}
+
+.noticeTextRed{
+ color: red; font-weight: bold;font-size: 22px;
+}

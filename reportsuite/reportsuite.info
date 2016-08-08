@@ -1,0 +1,15 @@
+name = reportsuite
+description = ReportingSuite for Automation
+package = pstauomation
+version = VERSION
+core = 7.x
+dependencies[]  = chart
+dependencies[]  = popup
+dependencies[]  = lightbox2
+dependencies[]  = date
+dependencies[]  = date_api
+
+; Information added by drupal.org packaging script on 2012-02-01
+version = "7.12"
+project = "drupal"
+

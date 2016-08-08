@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MailingList>
+    <WeeklyReporting section="overall">
+        <RegistryEntry duid="2" name="jossie.saul@datalex.com" email="jossie.saul@datalex.com" />
+        <RegistryEntry duid="3" name="pst.automation@datalex.com" email="pst.automation.enotification@datalex.com" />
+        <RegistryEntry duid="4" name="chris.hall@datalex.com" email="chris.hall@datalex.com" />
+        <RegistryEntry duid="7" name="ilya_chandyryn" email="ilya_chandyryn@epam.com" />
+        <RegistryEntry duid="16" name="Aliaksei_Kandratovich1@epam.com" email="Aliaksei_Kandratovich1@epam.com" />
+        <RegistryEntry duid="5" name="andrew.thomas@datalex.com" email="andrew.thomas@datalex.com" />
+    </WeeklyReporting>
+    <WeeklyReporting section="project">
+        <RegistryEntry duid="17" projects="1,3,4,5" name="Jossie" email="jossie.saul@datalex.com" />
+    </WeeklyReporting>
+    <ProjectLeads section="PST">
+        <RegistryEntry project="4" email="ala_shcharbina@epam.com"/>
+        <RegistryEntry project="1" email="maryna_varenikava@epam.com"/>
+        <RegistryEntry project="7" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="8" email="Uriel.Wenceslao@datalex.com"/>
+        <RegistryEntry project="9" email="ala_shcharbina@epam.com"/>
+        <RegistryEntry project="11" email="Anastasiya_Sadovskaya@epam.com"/>
+        <RegistryEntry project="12" email="Liliya.Zakreuskaya@datalex.com"/>
+        <RegistryEntry project="14" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="15" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="16" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="18" email="Harold.Sonido@Datalex.com"/>
+        <RegistryEntry project="19" email="Arsenio.OrganoJr@datalex.com"/>
+        <RegistryEntry project="27" email="Gerard.Jacolbia@Datalex.com"/>
+        <RegistryEntry project="29" email="maryna_varenikava@epam.com"/>
+        <RegistryEntry project="30" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="31" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="32" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="33" email="Bob.Lynch@Datalex.com"/>
+        <RegistryEntry project="6" email="Ruben.Quiambao@Datalex.com"/>
+        <RegistryEntry project="35" email="Jossie.Saul@datalex.com"/>
+        <RegistryEntry project="37" email="John.Bishop@datalex.com"/>
+        <RegistryEntry project="6" email="Ruben.Quiambao@Datalex.com"/>
+        <RegistryEntry project="38" email="Dean.Richardson@datalex.com"/>
+        <RegistryEntry project="39" email="Anastasiya_Sadovskaya@epam.com"/>
+        <RegistryEntry project="40" email="Vadzim.Lis@datalex.com"/>
+        <RegistryEntry project="43" email="Larry.Dinoff@Datalex.com"/>
+        <RegistryEntry project="44" email="Harold.Sonido@Datalex.com"/>
+        <RegistryEntry project="45" email="Adam.Worsley@datalex.com"/>
+    </ProjectLeads>
+    <ProjectLeads section="DEV">
+    </ProjectLeads>
+</MailingList>

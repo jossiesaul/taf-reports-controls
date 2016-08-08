@@ -1,0 +1,1644 @@
+<?php
+/**
+ * Reporting Suite Modules
+ *
+ * 
+ * @author Jossie Saul <jossie.saul@datalex.com>
+ */
+include_once 'reportsuite.class.php';
+include_once 'reportsuite.queries.class.php';
+include_once 'reportsuite.xmlProcessor.class.php';
+include_once 'reportsuite.analysis.class.php';
+include_once 'reportsuite.analysisHelper.class.php';
+include_once 'reportsuite.hlanalysis.class.php';
+include_once 'reportsuite.weeklyReporting.class.php';
+
+include_once 'reportsuite.reporting.class.php';
+include_once 'reportsuite.result.class.php';
+include_once 'reportsuite.ELDProcessor.class.php';
+
+function reportsuite_init()
+{
+    drupal_add_css(drupal_get_path('module', 'reportsuite').'/reportsuite.css');
+    drupal_add_css(drupal_get_path('module', 'ateamutils').
+            '/lib/960GridSystem/css/960.css');
+    drupal_add_js('https://www.google.com/jsapi', 'external');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function reportsuite_theme() 
+{
+  return array(
+    'mainPageAnalysis' => array(
+      'template' => 'mainPageAnalysis',
+      'variables' => array('title' => NULL,
+                          'listOfProjects' => null,
+                          'dataByTpid' => null,
+                          'listOfTestCases' => null,
+                          'listOfCoverage' => null,
+                          'section5' => null),
+    ),
+   'mainPageSummary' => array(
+      'template' => 'mainPageSummary',
+      'variables' => array('title' => NULL,
+                           'data' => null),
+    ),
+    'runResultDetail' => array(
+      'template' => 'runResultDetail',
+      'variables' => array('title' => NULL,
+                           'data' => null),
+    ),
+    'automationAnalysis' => array(
+      'template' => 'automationAnalysis',
+      'variables' => array('title' => NULL,
+                           'data' => null),
+    ),
+    'customerAnalysis' => array(
+      'template' => 'customerAnalysis',
+      'variables' => array('title' => NULL,
+                           'data' => null),
+    ),
+     'runResultAnalysis' => array(
+      'template' => 'runResultAnalysis',
+      'variables' => array('title' => NULL,
+                           'data' => null),
+    ),
+      'runResultAnalysisDetail' => array(
+      'template' => 'runResultAnalysisDetail',
+      'variables' => array('title' => NULL,
+                           'data' => null),
+    ),
+      
+  );
+}
+
+function reportsuite_menu()
+{
+    
+    $items['reportsuite'] = array(
+    'title' => 'Automation Reporting Suite',
+    'description' => t('A Page to test the functionality of this module'),
+    'page callback' => 'reportsuite_pageRouter',
+    'page arguments' => array('mainPage', 'Summary', 'default'),
+    'access callback' => true,
+    );
+    $items['reportsuite/%/%/%/%'] = array(
+    'title' => 'Page Routing',
+    'page callback' => 'reportsuite_pageRouter',
+    'page arguments' => array(1, 2, 3, 4),
+    'description' => t('Page Router for Report Suite for easier Management'),
+    'access callback' => true,
+    );
+    $items['reportsuite/probe/%/%/%/%'] = array(
+    'title' => 'Page Routing',
+    'page callback' => 'reportsuite_probeRouting',
+    'page arguments' => array(2, 3, 4, 5),
+    'description' => t('probe router for system level processing'),
+    'access callback' => true,
+    );
+    $items['reportsuite/overrideOutcome/%/%'] = array(
+    'title' => 'Override Outcome',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('reportsuite_overrideOutcomeForm', 2, 3),
+    'description' => t('override outcome'),
+    'access callback' => true,
+    'file' => 'reportsuite.forms.inc',
+    );
+    
+    return $items;
+    
+}
+
+
+function reportsuite_pageRouter($routeTo, $arg1, $arg2, $arg3)
+{
+    module_load_include('inc', 'popup', 'includes/popup.api');
+    module_load_include('inc', 'reportsuite', 'reportsuite.graphs');
+    module_load_include('inc', 'reportsuite', 'reportsuite.analysis');
+    module_load_include('inc', 'reportsuite', 'reportsuite.forms');
+    //showMaintaiananceMsg();
+    $output = '';
+    switch ($routeTo)
+    {
+        case 'mainPage':
+            $output = reportsuite_mainPage($arg1, $arg2, $arg3);
+        break;
+        case 'summary':
+            //$arg2 - Params
+            $output = reportsuite_customerSummary($arg1, $arg3, $arg2);
+            break;
+        
+        ////////////////Run Execution Information Page///////////////////////
+        case 'exportResults':
+            $output = drupal_get_form('reportsuite_exportResults_form', $arg1);
+            break;
+        case 'resultDetail':
+            $output = reportsuite_runResultDetail($arg1);
+            break;
+        case 'resultDebugging':
+            $output = reportsuite_resultDetailDebuggingPage($arg1, $arg2);
+            break;
+        case 'resultDetailRP':
+            $output = reportsuite_runResultDetail_replacePH($arg1);
+            break;
+        case 'rrdScreenshots':
+            $output = reportsuite_runResultDetailScreenshot($arg1);
+            break;
+        case 'coverageMatrix':
+            $output = reportsuite_coverageMatrix($arg1);
+            break;
+        case 'runAnalysis':
+            $output = reportsuite_runAnalysis($arg1, $arg2, $arg3);
+            break;
+        case 'runLog':
+            $output = reportsuite_runStepWalkthrough($arg1);
+            break;
+        case 'latestRun':
+            $customer = $arg1;
+            $pos = $arg2;
+            $dept = $arg3;
+            $tpid = reportsuitequeries::getTpidByCustomerAndPos($customer, $pos);
+            $reid = reportsuitequeries::getLastReidByTpidAndDept($tpid, $dept);
+            $output = reportsuite_runResultDetail($reid);
+            break;
+        
+        //////////////Forms/////////////
+        case 'form':
+            $formid = $arg1;
+            
+            $output = drupal_get_form('reportsuite_'.$formid.'_form');
+            break;
+        
+        //////////////Automation Analysis Router/////////////
+        case 'projectAutomationAnalysis':
+            $output = '';
+            break;
+        case 'automationAnalysis':
+            $tpid = $arg1;
+            $output = reportsuite_customerAnalysis($tpid, $arg2, $arg3);
+            break;
+        ///////////////////////////////////////
+        case 'flagRunExecution':
+            //drupal_set_message('<pre>'.print_r(drupal_get_destination(), 1).'</pre>');
+             if(user_is_logged_in())
+             {
+                $reid = $arg2;
+                //$_SESSION['reportsuite']['tempCache']['reid'] = $arg2;
+                if($arg1 === 'bad')
+                {
+                    drupal_set_title('Bad Run - Are you Sure?');
+                    $output = drupal_render(drupal_get_form('reportsuite_runExecutionFlag_form', 
+                            $reid));
+                }
+                else 
+                {
+                    reportsuitequeries::runExecutionFlag($reid, 0);
+                    drupal_goto('reportsuite/resultDetail/'.$reid.'/null/null');
+                }
+             }
+             else
+             {
+                drupal_set_message("Unable to proceed! Please Login!", 'error');
+                 $output = drupal_access_denied();
+             }
+            break;
+            
+       //////////////////////////////////////////////////
+       ///////// Forms Interaction Redirection //////////
+//       case 'overrideOutcome':
+//           $output = drupal_get_form('reportsuite_overrideOutcomeForm', $arg1, $arg2);
+//           break;
+            
+       ////////////////////////////////////////////////////////
+        case 'showCase':
+            $output = reportsuite_demoPage($arg1, $arg2, $arg3);
+            break;
+        case 'debugPage':
+            $output = reportsuite_debugPage($arg1, $arg2, $arg3);
+            break;
+        case 'aps':
+            $output = reportsuite_adminPageSecret($arg1, $arg2, $arg3);
+            break;
+        default:
+            $output = drupal_not_found();
+            break;
+    }
+    return $output;
+}
+
+function reportsuite_probeRouting($routeTo, $arg1, $arg2, $arg3)
+{
+    $output = '';
+        switch($routeTo)
+        {
+            case 'testCases':
+                $reid = $arg1;
+                reportsuite::probeTestCases($reid);
+                drupal_set_message('Test Cases Probed');
+                $output = 'hello';
+                break;
+            case 'weeklyReportingOverall':
+                $weekFrom = strtotime('- 1 weeks');
+                $weekTo = strtotime('now');
+                if($arg1 !== 'null')
+                {
+                   $customDate = explode('::', $arg1);
+                }
+                $data = array('week' =>
+                         array('from' => date('jS F, Y', $weekFrom),
+                               'to' => date('jS F, Y', $weekTo)));
+                $data['table']['weeklyReport']['overall'] = 
+                    reportsuiteweeklyreporting::overallWeeklyReportData();
+                $output = reportsuiteweeklyreporting::sendWeeklyReport($data);
+                
+                break;
+            case 'projectWeeklyReportOnReq':
+                reportsuiteweeklyreporting::takeScreenshotOfAnalyticsPage("37");
+                break;
+            case 'projectWeeklyReportAll':
+                reportsuiteweeklyreporting::processAndPostProjectWeeklyReports();
+                break;
+            case 'resultNotification':
+                $customer = $arg1;
+                $POS = $arg2;
+                $url = 'http://10.153.30.100/?q=reportsuite/latestRun/'.
+                        $customer.'/'.$POS.'/PST';
+                $link = 'http://pstautomation.datalex.com/?q=reportsuite/latestRun/'.
+                        $customer.'/'.$POS.'/PST';
+                if(reportsuitereporting::isNotificationOfResultsIsRequested($customer))
+                {
+                    reportsuitereporting::takeScreenShotOfPageOnURLToPdf($url, $customer);
+                    reportsuitereporting::sendReportToMailingsAfterAutoRun($customer, $link);
+                }
+                break;
+            case 'resultNotificationSaltNotification':
+                break;
+        }
+        return $output;
+}
+
+/**
+ * 
+ * @param type $dept
+ * @return type
+ */
+function reportsuite_mainPage($page, $dept, $query)
+{
+    drupal_set_title('Automation Reporting Suite');
+    module_load_include('inc', 'popup', 'includes/popup.api');
+    $output = "";
+    
+    $output .= reportsuite::sublinksMainPage($page, $dept);
+    
+    switch($page)
+    {
+        case 'Summary':
+            $output .= reportsuite_mainPage_summary($dept);
+            break;
+        case 'Analysis':
+            $queryBy = $dept=='default'?'default':$dept;
+            $output .= reportsuite_mainPage_analysis($queryBy, $query);
+            break;
+        default:
+            drupal_goto(drupal_not_found());
+            break;
+    }
+    
+    
+    return $output;
+
+}
+
+function reportsuite_mainPage_summary($dept)
+{
+    $output = '<h2>Project Automation Summary</h2>';
+    db_set_active('taf');
+    $query = db_select('taf_projects', 'tp');
+    $query->fields('tp', array('tpid', 'customer', 'customer_code', 'pos',
+                               'automation_engineer', 'test_lead'));
+    $resultSet = $query->execute();
+    db_set_active();
+    
+    drupal_add_js(drupal_get_path('module', 'reportsuite').'/lib/js/liveSearch.js');
+    
+     $popUpoverallPFRatio =  popup(
+             array('title' => '[?]',
+                'text' => '<u>Total number of ran all cases</u> passing
+                            plus warnings divided by fails',
+                'origin' => 'top-right',  
+                'expand' => 'bottom-right'));
+     
+    $popUpLatestAutoRes =  popup(
+            array('title' => '[?]',
+                'text' => 'TC:Total Test Cases | 
+                        (<span style="color:lime;"> PASS </span> / 
+                        <span style="color:#E68A00;"> WARNINGS </span> / 
+                        <span style="color:red;"> FAILS </span> /
+                        TAF ERROR)',
+                'width' => '500',
+                'origin' => 'top-right',  
+                'expand' => 'bottom-right'));
+    
+    $header = array(array('data' => 'Customer'),
+                    'Overall <br /> Pass/Fail Ratio '.$popUpoverallPFRatio, 
+                    //'Latest Auto Result '.$popUpLatestAutoRes,
+                    'Last Run <br /> Pass Rate',
+                    'Last Run <br /> Date',
+                   // 'Automation Engineer',
+                   // 'Test Lead'
+                    );
+    $rows = array();
+    
+    
+    
+    foreach ($resultSet as $result)
+    {
+        $customer = reportsuite::customerAlias($result->tpid);
+        $autoResultStore = reportsuitequeries::latestCustomerAutomationResult(
+                $result->tpid, $dept);
+        
+        if(!empty($customer))
+        {
+          if(isset($customer['disabled']) && $customer['disabled'])
+          $rows[] = array(
+                    array('data' => $customer['name']),
+                    array('data' => '<center>
+                                     <span style="color:red;">
+                                     <b>Project Disabled</b>
+                                     </span>
+                                     </center>',
+                          'colspan' => 6),
+                    );   
+          else
+          $rows[] = array(l($customer['name'], 'reportsuite/summary/'.$result->tpid.
+                        '/'.$result->customer.'-'.$result->pos.'-historicalRunArea/default'),
+                        //reportsuitequeries::passToFailRatio($result->tpid, $dept),
+                        reportsuitequeries::latestCustomerAutomationResult($result->tpid, $dept, true),
+                        reportsuitequeries::calculatePassRate($autoResultStore['Total'],
+                        ($autoResultStore['Pass']+$autoResultStore['Warning']), true),
+                        l(date("F j, Y, g:i a", strtotime(reportsuitequeries::lastRunDateTime($result->tpid, $dept))),
+                          'reportsuite/latestRun/'.$result->customer.'/'.
+                          $result->pos.'/PST'),
+                       // $result->automation_engineer,
+                       // $result->test_lead,
+                    );
+        }
+    }
+    $output .= '<input type="text" id="search" placeholder="  live search"></input>';
+    $output .= theme('table', array ('id' => 'test', 'header' => $header, 'rows' => $rows));
+    
+    return $output;
+}
+
+function reportsuite_mainPage_analysis($queryBy, $queryVariable)
+{
+  drupal_set_title("Automation Analysis");
+  $output = '';
+  $timespan = array();
+  $monthLinks = array();
+  $data = array();
+  $graphtitle = '';
+  
+  if($queryVariable == 'null'){
+      $queryBy = 'monthYear';
+      $month = date('F');
+      $year = date('Y');
+      $graphtitle = $month.' '.$year; 
+  }else{
+      $qSplit = explode('-', $queryVariable);
+      $month = $qSplit[0];
+      $year = $qSplit[1];
+      $graphtitle = $month.' '.$year;
+  }
+  
+    switch($queryBy)
+    {
+        case 'monthYear':
+            $timespan = reportsuiteanalysishelper::getDurationByMonthYear($month, $year);
+            break;
+        case 'year':
+            $year = $queryVariable;
+            $graphtitle = $year;
+            $timespan['from'] = date('Y-m-d', strtotime('1 January '.$year));
+            $timespan['to'] = date('Y-m-d', strtotime('31 December '.$year));
+            break;
+        default:
+            break;
+    }
+    //drupal_set_message($queryBy.$month.$year);
+    //drupal_set_message('<pre>' . print_r($timespan, 1) . '</pre>');
+    
+    $masterData = array();
+    
+    foreach(reportsuitequeries::getAllTpid() as $tpid => $tpDt)
+    {
+        $testRunResults = reportsuitehlanalysis::getAllTestCaseResultsDataByTimeSpan($tpid, 'PST', $timespan);
+    
+        $analyticRawData = array(
+            'totalDurationTime' => reportsuitehlanalysis::getTotalDurationFromTestRunResults($testRunResults, 'durationInSec'),
+            'totalGridDurationTime' => reportsuitehlanalysis::getTotalDurationFromTestRunResults($testRunResults, 'gridDurationInSec'),
+
+        );
+        
+        $data[$tpid] = array(
+            'tpData' => $tpDt,
+            'analyticalData' => $analyticRawData,
+        );
+        //drupal_set_message('<pre>' . print_r($analyticRawData, 1) . '</pre>');    
+        //drupal_set_message('<pre>' . print_r($testRunResults, 1) . '</pre>');
+    }
+    
+    $data['timeQueried']['month'] = $month;
+    $data['timeQueried']['year'] = $year;
+    
+    $data['analysis']['statistical']['chart']['roi'] = reportsuite_allAutoTimeSaving_barChart($data, $graphtitle);
+   // drupal_set_message('<pre>' . print_r($masterData, 1) . '</pre>');
+    
+    $build['mpAnalysis'] = array(
+      '#theme' => 'automationAnalysis',
+      '#data' => $data,
+    );
+    
+   $jsTabScript = '(function($){$(function() { $("#analysisTabs").tabs(); })})(jQuery);';
+   $build['myelement']['#attached']['library'][] = array('system', 'ui.tabs');
+   $build['myelement']['#attached']['js'][] = array('data' => $jsTabScript, 'type' => 'inline');
+    
+   return drupal_render($build);  
+}
+
+
+function reportsuite_customerSummary($tpid, $releasePhase, $paramsRaw){
+    $customer = reportsuite::customerAlias($tpid);
+    drupal_set_title('Automation Report Summary | '.$customer['name']);
+    
+    //Air Transat FixPatch
+    $paramsRaw = str_replace('AIR-TRANSAT', 'AIRTRANSAT', $paramsRaw);
+    $paramsRaw = str_replace('WESTJET-CA-MOBILE', 'WESTJETCAMOBILE', $paramsRaw);
+    $params = explode('-', $paramsRaw);
+    
+    
+    //IF FILTER SESSION IS SET
+    if(isset($_SESSION['filterSubmission']) &&
+            $_SESSION['filterSubmission']['filterBy'] == 'Release Phase')
+    {
+        drupal_set_message("Filter is still active. Reset it by clicking on the"
+                . " Reset button.", 'warning');
+        $releasePhase = $_SESSION['filterSubmission']['filter'];
+    }
+    
+    
+    $dept = 'PST';
+    $customerProjectName = $params[0];
+    $customerProjectPos = $params[1];
+    $graphSel = $params[2];
+    
+    $automationResultSet = reportsuitequeries::
+            getAllResultsByTpidAndReleaseStage($tpid, $releasePhase, true, true);
+    
+    $output = '';
+        
+    $output .= reportsuite::sublinksCustomerSummary('Report Summary', $tpid);
+    
+    $output .= drupal_render(
+                drupal_get_form('reportsuite_customerSummaryFilter_form', $tpid));
+    
+    $switchGraphLinks = reportsuite::switchGraphLinksController(
+                        $graphSel, 
+                        'summary', 
+                        array('tpid' => $tpid,
+                              'projectName' => $customerProjectName,
+                              'pos' => $customerProjectPos,
+                              'dept' => $dept));
+    
+    //////////////////////////////////////////////////
+    ////Main Content
+    if(!isset($_SESSION['filterSubmission'])){
+        $output .= reportsuite_graphAndChart_switcher($graphSel, 
+                   array('automationResultSet' => $automationResultSet));
+
+        $output .= '<center>'.$switchGraphLinks.'</center>';
+    }
+    
+    $header = array(array('data' => 'Run ID'),
+                    array('data' => 'Environment'),
+                    array('data' => 'Pass Rate'),
+                    array('data' => 'Total Cases'),
+                    array('data' => 'Passed/Warnings'),
+                    array('data' => 'Failed'),
+                    array('data' => 'TAF Errors'),
+                    array('data' => 'Run Date'),
+                    array('data' => 'Duration'),
+                    array('data' => '')
+                    );
+        
+        //PUT NEW DATA HERE        
+        db_set_active('taf');
+        $query = db_select('run_execution', 're')->extend('PagerDefault');
+        if($releasePhase == 'default')
+        {
+            $query->condition('re.tpid', $tpid)
+                  ->condition('re.dept', $dept)
+                  ->condition('re.run_duration', 15, '>')
+                  ->condition('re.locally_executed', 0)
+                  ->condition('re.run_flag', 1, '!=')
+                  ->condition('re.run_flag', 69, '!=');
+        }else{
+            $query->condition('re.tpid', $tpid)
+                  ->condition('re.dept', $dept)
+                  ->condition('re.run_duration', 15, '>')
+                  ->condition('re.locally_executed', 0)
+                  ->condition('re.run_flag', 1, '!=')
+                  ->condition('re.run_flag', 69, '!=')
+                  ->condition('re.release_stage', $releasePhase, '=');
+        }
+        
+        if(isset($_SESSION['filterSubmission'])){
+            
+            if($_SESSION['filterSubmission']['runType'] !== '9999'){
+                $query->condition('re.run_flag', 
+                        $_SESSION['filterSubmission']['runType'], '=');
+            }
+            
+            
+            if($_SESSION['filterSubmission']['filterBy'] == 'Environment'){
+                $query->condition('re.test_environment', 
+                        $_SESSION['filterSubmission']['filter'], '=');
+            }
+            
+            if($_SESSION['filterSubmission']['filterBy'] == 'Date'){
+                $query->condition('re.run_datetime_start', 
+                        array($_SESSION['filterSubmission']['from'], 
+                              $_SESSION['filterSubmission']['to']), 
+                              'BETWEEN');
+            }
+        }
+        $query->fields('re'); 
+        $resultSet = $query
+                     ->limit(10)
+                     ->orderBy('re.reid', 'DESC')
+                     ->execute();
+     db_set_active();
+    
+    $automationResultSet = reportsuitequeries::getAllResultsByTpidAndReleaseStage($tpid, $releasePhase, true);
+    
+    $rows = array();
+    
+    /**
+     * DO NOT TOUCH!
+     */
+    foreach ($resultSet as $result)
+    {
+        $passRate = reportsuitequeries::calculatePassRate(
+                    $automationResultSet[$result->reid]['Total'], 
+                    $automationResultSet[$result->reid]['Pass']+
+                    $automationResultSet[$result->reid]['Warning'],
+                    true);
+        
+        $passedAndWarnings = '<span style="color:green;font-weight:bolder;">'.
+                             $automationResultSet[$result->reid]['Pass'].
+                             '</span>/<span style="color:orange;font-weight:bolder;">'.
+                             $automationResultSet[$result->reid]['Warning'].
+                             '</span>';
+        $failed = '<span style="color:red;font-weight:bolder;">'.
+                  $automationResultSet[$result->reid]['Fail'].
+                  '</span>';
+        
+        $tafError = '<span style="font-weight:bolder;">'.
+                  $automationResultSet[$result->reid]['TAFError'].
+                  '</span>';
+        
+        $runDateFormat = date("j M, Y,", strtotime($result->run_datetime_start)).'<br />'.
+                         date("g:i a", strtotime($result->run_datetime_start));
+        
+        $totalDuration = reportsuite_duration(reportsuite::processTotalDurationBySuite(
+                              reportsuiteXmlProcessor::processXmlIntoTestCasesResultData(
+                              reportsuiteXmlProcessor::processTestResultsXml($result->reid))),4);
+        
+        
+        if($result->run_mode == 'GRID')
+        {
+            $totalDuration = reportsuite::processTotalDurationBySeconds(
+                    reportsuite::calculateTotalDurationByStartStopTime(
+                        $result->run_datetime_start, $result->run_datetime_stop),
+                    4);
+            $totalDuration .= " <br />(&#9733;GRID Run)";
+        }
+        
+        
+        $rows[$result->reid] = array(l($result->reid, 'reportsuite/resultDetail/'.$result->reid.'/null/null'),
+                        $result->test_environment,
+                        '<span id="prOnTable">'.$passRate.'</span>',
+                        $automationResultSet[$result->reid]['Total'],
+                        $passedAndWarnings,
+                        $failed,
+                        $tafError,
+                        $runDateFormat,
+                        $totalDuration,
+                        l('X', 'reportsuite/flagRunExecution/bad/'.$result->reid.'/null', 
+                                array('query' => array(drupal_get_destination()),
+                                            'attributes' => array('id' => 'badRunSummary'))),
+                  );
+    }
+    
+    $build['pager_table'] = drupal_get_form('reportsuite_customerSummaryTable_form', $header, $rows);
+    
+    $build['pager_pager'] = array('#theme' => 'pager');
+    
+    $output .= drupal_render($build);
+    
+    return $output;
+}
+
+
+function reportsuite_customerSummaryFilterResult($form, &$form_state)
+{
+ $output = 'Hello';
+ drupal_set_message('<pre>' . print_r($form_state, 1) . '</pre>');
+ return $output;
+}
+
+function reportsuite_customerSummaryRefactor()
+{
+    
+}
+
+function reportsuite_customerAnalysis($tpid, $queryBy, $queryVariable)
+{
+    //showMaintaiananceMsg();
+    $data = array();
+    $dept = 'PST';
+    $duration = null;
+    $periodType = array('daily' => 'Day', 'weekly' => 'Week', 'monthly' => 'Month');
+    
+    $customer = reportsuite::customerAlias($tpid);
+    
+    $currentPage = '';
+    $periodChange = array();
+    
+    switch ($queryBy)
+    {
+        case 'timespan':
+            if(preg_match('/pchange/', $queryVariable)){
+                $argVar = explode('--', $queryVariable);
+                $period = $argVar[0];
+                $periodChange['instruction'] = str_replace('pchange', '', $argVar[1]);
+                $periodChange['type'] = $periodType[$period];
+                $periodChange['from'] = str_replace('tsf', '', $argVar[2]);
+                $periodChange['to'] = str_replace('tst', '', $argVar[3]);
+            }else{
+                $period = $queryVariable;
+            }
+            
+            $timespan = reportsuiteanalysishelper::getDurationByPeriodic($period, $periodChange);
+            $testRunResults = reportsuitehlanalysis::getAllTestCaseResultsDataByTimeSpan($tpid, $dept, $timespan);
+            
+            $listOfTestCases = reportsuitehlanalysis::getTestCaseGrowthByTimeSpan($tpid, $timespan);
+            $data['analysis']['testcaseGrowth']['total'] = count($listOfTestCases);
+            
+            $data['analysis']['period'] = $periodType[$period];
+            $data['analysis']['timespan'] = $timespan;
+            $currentPage = $queryVariable;
+            
+            $data['links']['periodic']['prev'] = l('<button><< Previous '.$periodType[$period].'</button>',
+                'reportsuite/automationAnalysis/'.$tpid.'/timespan/'.$period.'--pchangeMinusOne--tsf'.
+                strtotime($timespan['from']).'--tst'.strtotime($timespan['to']), 
+                array('html' => true));
+    
+            $data['links']['periodic']['next'] = l('<button>Next '.$periodType[$period].' >></button>',
+                'reportsuite/automationAnalysis/'.$tpid.'/timespan/'.$period.'--pchangePlusOne--tsf'.
+                strtotime($timespan['from']).'--tst'.strtotime($timespan['to']), 
+                array('html' => true));
+            
+            break;
+            
+        /**
+         * 
+         */  
+        case 'releasePhase':
+            $data['links']['rpArr'] = reportsuite::releasePhaseArrLinks(
+            'reportsuite/automationAnalysis/'.$tpid.'/releasePhase',$tpid);
+            
+            if($queryVariable !== 'show'){
+                $testRunResults = reportsuitehlanalysis::getAllTestCaseResultsByReidCollectionSet(
+                                                   reportsuitequeries::getAllReidByReleasePhase($tpid, $queryVariable));
+                
+                $listOfTestCases = reportsuitehlanalysis::
+                        getTestCaseGrowthByReleasePhase($tpid, $queryVariable);
+                $data['analysis']['testcaseGrowth']['total'] = count($listOfTestCases);
+                
+            }
+            
+            $data['analysis']['period'] = $queryVariable == 'show'?
+                    'Please select from the list below;':$queryVariable;
+            
+            $currentPage = 'releasePhase';
+            break;
+            
+            
+//        case 'releasePhaseByTestCycle':
+//            break;
+        case 'testcaseGrowth':
+            $listOfTestCases = reportsuite:: listOfTestCases($tpid);
+            $data['testcaseGrowth']['total']['testCases']  = count($listOfTestCases);
+            $data['testcaseGrowth']['list']['testCases'] = $listOfTestCases;
+            $testCaseGrowthStats = 
+                    reportsuiteanalysis::processTestCaseGrowthDataFromListOfTestCases($listOfTestCases);
+            $data['testcaseGrowth']['stats'] = $testCaseGrowthStats;
+            $data['testcaseGrowth']['chart']['testCaseGrowth'] = 
+                reportsuite_testCaseGrowth_chart('Automated Test Case Growth', $tpid,$testCaseGrowthStats);
+            break;
+        default:
+            $duration = null;
+            break;
+    }
+    
+    $headingAdditional = '[';
+    $headingAdditional .= isset($period)?
+            $periodType[$period]:'Release Phase - '.$queryVariable;
+    
+    $headingAdditional .= ' Statistics]';
+    drupal_set_title('Automation Analysis Summary | '.$customer['name']);
+    
+    if(isset($testRunResults) && !empty($testRunResults)){
+        
+        $data['analysis']['testResults']['data'] = $testRunResults;
+        $asDataStore = reportsuitehlanalysis::
+                    gatherAllAnalyticalAndStatisticalDataByArrayOfReid(array_keys($testRunResults));
+        $data['analysis']['testResults']['totalOutcome'] = 
+                reportsuitehlanalysis::getTotalTestRunResultOutcome($testRunResults);
+        $data['analysis']['statistical']['actionSteps']['total'] = 
+                reportsuitehlanalysis::getTotalActionStepResultOutcome($asDataStore);
+        $data['analysis']['statistical']['duration']['single'] = 
+                reportsuitehlanalysis::getTotalDurationFromTestRunResults($testRunResults, 'durationInSec');
+        $data['analysis']['statistical']['duration']['grid'] = 
+                reportsuitehlanalysis::getTotalDurationFromTestRunResults($testRunResults, 'gridDurationInSec');
+        $data['analysis']['statistical']['runners'] = 
+                reportsuitehlanalysis::gatherTopRunnersFromTestRunResults($testRunResults);
+        $data['analysis']['statistical']['environments'] = 
+                reportsuitehlanalysis::gatherTopEnvFromTestResults($testRunResults);
+        $data['analysis']['statistical']['failureCommonality'] = 
+                reportsuitehlanalysis::getTotalFailureCommonality($asDataStore);
+        
+        $data['analysis']['statistical']['testCaseResultHistory'] = 
+                reportsuitehlanalysis::gatherTestCaseResultHistoryFromRuns($asDataStore);
+        
+        $data['analysis']['statistical']['chart']['testRuns'] = 
+                reportsuite_historicalRun_areaChart(
+                reportsuiteanalysishelper::processTestRunResultsForGoogleChartData($testRunResults));
+        
+        if(count($listOfTestCases) !== 0)
+        $data['analysis']['statistical']['chart']['testCaseGrowth'] = 
+                reportsuite_testCaseGrowth_chart('Automated Test Case Growth', $tpid,
+                reportsuiteanalysis::processTestCaseGrowthDataFromListOfTestCases($listOfTestCases));
+        
+        $data['analysis']['testcaseGrowth']['list'] = $listOfTestCases;
+        
+                
+    }
+    
+    $data['analysis']['testResults']['outputCriteria'] = reportsuiteresult::getResutStatusCriteria();
+    
+    $data['notices']['popup']['averagePrDesc'] = popup(
+             array('title' => '[?]',
+                'text' => '<b>Not to be mistaken over TOTAL Pass Rate</b>.<br />
+                    The <u>average pass rate</u> consist of all Run Execution Pass Rate and divided 
+                    against the number of total test runs. <br />
+                    <b>Formula:</b> sum(Test Run Pass Rate)/count(Number Of Test Runs)',
+                'origin' => 'top-right',  
+                'expand' => 'bottom-right'));
+    
+    $data['links']['sublinks'] =  reportsuite::sublinksCustomerSummary('Automation Analysis', $tpid);
+    $data['links']['pageLinks'] = reportsuite::sublinksCustomerAnalysisDisplayOptions($currentPage, $tpid);
+    
+    //drupal_set_message('<pre>' . print_r($data['links']['rpArr'], 1) . '</pre>');
+    //link filter
+    //releasephase
+    //test cycle
+    
+   $build['projectSuite'] = array(
+      '#theme' => 'customerAnalysis',
+      '#data' => $data,
+    );
+    
+   
+   $jsTabScript = '(function($){$(function() { $("#analysisTabs").tabs(); })})(jQuery);';
+   $build['myelement']['#attached']['library'][] = array('system', 'ui.tabs');
+   $build['myelement']['#attached']['js'][] = array('data' => $jsTabScript, 'type' => 'inline');
+      
+   return drupal_render($build); 
+}
+
+/**
+ *  RUN Result Details
+ * 
+ *  
+ * @param type $reid
+ * @return type
+ */
+
+function reportsuite_runResultDetail($reid)
+{
+    
+    $tpid = reportsuitequeries::getTpidByReid($reid);
+    $tpObj = reportsuitequeries::getTpbyTpid($tpid);
+    $customerAlias = reportsuite::customerAlias($tpid);
+    drupal_add_js('misc/collapse.js');
+    drupal_add_js('misc/form.js');
+    reportsuite::probeTestCases($reid, $tpid);
+   
+    drupal_set_title('Run Result Detail | '.$customerAlias['name'].' Automation | Run-'.$reid);
+    
+    if(($frdata = reportsuiteXmlProcessor::getFailureReason($reid)) !== FALSE)
+    {
+        drupal_set_message('<b>Overall Run Result - Failure Reason Notice:</b> <br />'.
+                $frdata['failureReason'].' - '.
+                $frdata['failureReasonComment'], 'warning');
+    }
+    
+    
+    /// DATA initializer Section ///
+    //$testResults = reportsuiteXmlProcessor::processTestResults($reid);
+    $xmlObj = reportsuiteXmlProcessor::processTestResultsXml($reid, true);
+    $testResults = reportsuiteXmlProcessor::getOverallResultsFromSuites($xmlObj);
+    $testResData = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData($xmlObj);
+    $totalDurationByXML = reportsuite::processTotalDurationBySuite($testResData);
+    $execListData = reportsuite::processExecutionListData(
+                                 reportsuitequeries::getRunExecutionList($reid));
+    $runExecutionDetail = reportsuitequeries::getRunExecutionDetailsByReid($reid);
+    $screenshots = reportsuitequeries::getScreenshotsByReid($reid);
+    
+    $prevReid = reportsuitequeries::getReidNearActualReid($reid, $tpid, 'PST', 'previous');
+    $nextReid = reportsuitequeries::getReidNearActualReid($reid, $tpid, 'PST', 'next');
+    
+    $otr = reportsuite::testResultsIntoTDS($testResults);
+    
+    $passRate = reportsuitequeries::calculatePassRate(
+                    $otr['totalTestCases'],
+                    $otr['passed'] + $otr['warning'],
+                    true);
+    //////////////////////////////////////////////////
+  
+    if($runExecutionDetail->run_flag === 1)
+        drupal_set_message('This Run was marked as a bad run. To revert this a good run '.
+                l('click here','reportsuite/flagRunExecution/good/'.$reid.'/null'), 'error');
+    
+    $data['result']['detail'] = array(
+        'reid' => $reid,
+        'title' => 'Run Result Detail | '.$customerAlias['name'].' Automation | Run-'.$reid,
+        'passRate' => $passRate,
+        'scenariosRan' => reportsuiteXmlProcessor::getScenariosNameInSuiteByXml($xmlObj),
+        'runDate' => date("F j, Y, g:i a", strtotime($runExecutionDetail->run_datetime_start)),
+        'runBy' => $xmlObj->runBy!==null?$xmlObj->runBy:'N/A',
+        'testType' => $runExecutionDetail->run_mode,
+        'testEnv' => l($runExecutionDetail->test_environment, $runExecutionDetail->test_environment,
+                    array('attributes' => array('target' => '_blank'))),
+        'releasePhase' => $xmlObj->releasePhase !== null?$xmlObj->releasePhase:'N/A',
+        'testCycle' => $xmlObj->testCycle!==null?$xmlObj->testCycle:'N/A',
+        'release' => isset($xmlObj->releaseName)? $xmlObj->releaseName:'N/A',
+        'browser' => reportsuite::processToReadableWithBrowserIcon($runExecutionDetail->browser_assign),
+        'totalExecutionTime' => reportsuite::processTotalDurationBySeconds(
+                                                      $totalDurationByXML, 4),
+        'totalRunDurationTime' => reportsuite::processTotalDurationBySeconds(
+                                                            reportsuite::calculateTotalDurationByStartStopTime(
+                                                                $xmlObj->runDateTimeStart, $xmlObj->runDateTimeStop),
+                                                         4),
+        'rrUuid' => $runExecutionDetail->uuid,
+        'outcome' => array(
+            'totalTestCases'=> $otr['totalTestCases'],
+            'passed' => $otr['passed'],
+            'warning' => $otr['warning'],
+            'failed' => $otr['failed'],
+            'error' => $otr['error'],
+            ),
+        );
+    
+  
+    $data['path']['image']['fail'] = theme('image', array(
+      'path' => drupal_get_path('module', 'reportsuite').
+                '/lib/fail.jpg',
+      'alt' => 'FAIL',
+      'title' => 'Epic Fail',
+      'width' => '60%',
+      'height' => '60%',
+      'attributes' => array('id' => 'projectSuiteRunImg'),
+      ));
+    
+    $data['path']['image']['failureReason']['button'] =
+        theme('image', array(
+            'path' => drupal_get_path('module', 'reportsuite').
+                     '/lib/notePnP.png',
+            'alt' => 'Run Execution Failure Reason',
+            'title' => 'Run Execution Failure Reason',
+            'width' => '50px',
+            'height' => '50px',
+            ));
+    
+    $data['path']['image']['failureReason']['legend'] =
+        theme('image', array(
+            'path' => drupal_get_path('module', 'reportsuite').
+                     '/lib/notePnP.png',
+            'alt' => 'Failure Reason Note',
+            'title' => 'Failure Reason Note',
+            'width' => '25px',
+            'height' => '25px',
+            ));
+    
+    $data['path']['image']['badRun'] =
+        theme('image', array(
+            'path' => drupal_get_path('module', 'reportsuite').
+                     '/lib/notlike.png',
+            'alt' => 'Run Execution Failure Reason',
+            'title' => 'Run Execution Failure Reason',
+            'width' => '50px',
+            'height' => '50px',
+            ));
+    
+     $data['path']['image']['reRun'] =
+        theme('image', array(
+            'path' => drupal_get_path('module', 'reportsuite').
+                     '/lib/rerun.png',
+            'alt' => 'Re-Run Failure(s)',
+            'title' => 'Re-Run Failure(s)',
+            'width' => '50px',
+            'height' => '50px',
+            ));
+     
+     $data['path']['image']['supTicket'] =
+        theme('image', array(
+            'path' => drupal_get_path('module', 'reportsuite').
+                     '/lib/support-tickets.png',
+            'alt' => 'Raise Support Ticket',
+            'title' => 'Raise Support Ticket',
+            'width' => '50px',
+            'height' => '50px',
+            ));
+     
+     
+       $data['result']['report'] = 
+        reportsuiteresult::generateResultReportFromResultObject(
+                $xmlObj, array('runDetail' => $data['result']['detail'],
+                               'testResData' => $testResData,
+                               'reid' => $reid,
+                               'execListData' => $execListData,
+                               'screenshots' => $screenshots,
+                               'failureReasonIcon' => 
+                                $data['path']['image']['failureReason']['legend']));
+    
+     $data['link']['back']['summary'] = l("<< Back to Summary Page >>", 
+             'reportsuite/summary/'.$tpid.'/'.$tpObj->customer.'-'.$tpObj->pos.'-historicalRunArea/default');
+     
+    $data['link']['subLink']['runResult'] = 
+        reportsuite::sublinksRunResultDetails('Result Details', $reid);
+    
+    $data['link']['runExec']['prev'] = !empty($prevReid)?
+            l('<button><< Previous Test Case</button>',
+            'reportsuite/resultDetail/'.$prevReid.'/null/null',
+            array('html' => true)):''; 
+    
+    $data['link']['runExec']['next'] = !empty($nextReid)?
+            l('<button>Next Test Case >></button>',
+            'reportsuite/resultDetail/'.$nextReid.'/null/null',
+            array('html' => true)):'';
+    
+    
+    
+     $build['myelement']['#attached']['library'][] = array('system', 'ui.dialog');
+     $jsFRDialogScript = '(function($){$(function() {
+        $( "#runExecFailureReasonDialog" ).dialog({
+            autoOpen: false
+          });
+
+            $( "#runResultFailFlagButton" ).click(function() {
+              $( "#runExecFailureReasonDialog" ).dialog( "option", "width", 450 );
+              $( "#runExecFailureReasonDialog" ).dialog( "open" );
+            });
+        })
+      })(jQuery);';
+     $build['myelement']['#attached']['js'][] = array('data' => $jsFRDialogScript, 'type' => 'inline');
+    
+     $jsBRDialogScript = '(function($){$(function() {
+        $( "#badRunDialog" ).dialog({
+            autoOpen: false
+          });
+
+            $( "#badRunFlagButton" ).click(function() {
+              $( "#badRunDialog" ).dialog( "option", "width", 450 );
+              $( "#badRunDialog" ).dialog( "open" );
+            });
+        })
+      })(jQuery);';
+     $build['myelement']['#attached']['js'][] = array('data' => $jsBRDialogScript, 'type' => 'inline');
+    
+     
+      $jsRRDialogScript = '(function($){$(function() {
+        $( "#reRunFailuresDialog" ).dialog({
+            autoOpen: false
+          });
+
+            $( "#reRunFailuresFlagButton" ).click(function() {
+              $( "#reRunFailuresDialog" ).dialog( "option", "width", 450 );
+              $( "#reRunFailuresDialog" ).dialog( "open" );
+            });
+        })
+      })(jQuery);';
+     $build['myelement']['#attached']['js'][] = array('data' => $jsRRDialogScript, 'type' => 'inline');
+     
+     foreach ($data['result']['report'] as $scenario => $rptData)
+     {
+         foreach($rptData['detail'] as $testCasesId => $tcrDt)
+         {
+                 //Failure Reason
+             $jsBRDialogScript = '(function($){$(function() {
+                $( "#fr_'.$testCasesId.'_Dialog" ).dialog({
+                    autoOpen: false
+                  });
+
+                    $( "#fr_'.$testCasesId.'_link" ).click(function() {
+                      $( "#fr_'.$testCasesId.'_Dialog" ).dialog( "option", "width", 450 );
+                      $( "#fr_'.$testCasesId.'_Dialog" ).dialog( "open" );
+                    });
+                })
+              })(jQuery);';
+             $build['myelement']['#attached']['js'][] = array(
+             'data' => $jsBRDialogScript, 'type' => 'inline');
+             
+//             //Override Outcome
+//             $jsBR2DialogScript = '(function($){$(function() {
+//                $( "#oo_'.$testCasesId.'_Dialog" ).dialog({
+//                    autoOpen: false
+//                  });
+//
+//                    $( "#oo_'.$testCasesId.'_link" ).click(function() {
+//                      $( "#oo_'.$testCasesId.'_Dialog" ).dialog( "option", "width", 450 );
+//                      $( "#oo_'.$testCasesId.'_Dialog" ).dialog( "open" );
+//                    });
+//                })
+//              })(jQuery);';
+//             $build['myelement']['#attached']['js'][] = array(
+//             'data' => $jsBR2DialogScript, 'type' => 'inline');
+         }
+     }
+     
+    $build['projectSuite'] = array(
+      '#theme' => 'runResultDetail',
+      '#data' => $data,
+    );
+     
+    
+    return drupal_render($build);
+}
+
+function reportsuite_runResultDetailScreenshot($resid)
+{
+    $screenshot = reportsuitequeries::getScreenshotByResid($resid);
+    echo $screenshot['image'];
+}
+
+
+/**
+ * 
+ * Method to smartly create the Matrix of Run Coverage
+ * 
+ * @param type $reid
+ * @return string
+ */
+function reportsuite_coverageMatrix($reid)
+{
+    $tpid = reportsuitequeries::getTpidByReid($reid);
+    $customerAlias = reportsuite::customerAlias($tpid);
+    drupal_set_title($customerAlias['name'].' Automation | Coverage Matrix | Run-'.$reid);
+    $output = '';
+    
+    $output .= reportsuite::sublinksRunResultDetails('Coverage Matrix', $reid);
+    
+    $output .= '<br /><br />';
+    
+    //Initialize Data
+    $testCases = reportsuiteXmlProcessor::processTestCaseIdInTestResults($reid);
+    $testCasesData = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData(
+                     reportsuiteXmlProcessor::processXmlIntoObject(
+                     reportsuiteXmlProcessor::loadXmlByReid($reid))); 
+    $coverageDetails = reportsuiteXmlProcessor::coverageMatrixProcessor($testCases);
+    //drupal_set_message('<pre>'.print_r($coverageDetails, 1).'</pre>');
+    
+    $output .= 'The Matrix';
+    
+    //tempVariables
+    $runBroadCoverage = array();
+    
+    //TestCases
+    $testCasesCache = array();
+    //Temp variable to check that the type has been called
+    $runBroadCoverageTypeCalled = array();
+    
+    $headerTypeRow = '<td colspan="2"></td>';
+    $headerRow = '';
+    $tableRowData = '';
+
+    //Get Coverage Info
+    foreach ($coverageDetails as $detail)
+    {
+      //drupal_set_message($detail['testCaseID']);
+      $testCasesCache[] = $detail['testCaseID'];
+      //drupal_set_message('<pre>'.print_r($detail, 1).'</pre>');
+        foreach($detail['details'] as $coverageKey => $coverageValue)
+        {
+            if($coverageKey == 'coverage' && !empty($coverageValue))
+            {
+                $runBroadCoverage[] = $coverageValue;
+            }
+        }
+    }
+    
+    //drupal_set_message('<pre>'.print_r($runBroadCoverage, 1).'</pre>');
+    //drupal_set_message('<pre>'.print_r($testCasesCache, 1).'</pre>');
+    $testCaseNo = 0;
+    //drupal_set_message($testCasesCache[1]);
+    foreach (reportsuiteXmlProcessor::getCoverageMatrixCatalog() as $key => $value)
+    {
+        //Catalog Type Counts
+        $headerTypeRowColSpan = 0;
+        //drupal_set_message($key);
+        foreach($runBroadCoverage as $coverage)
+        {
+            foreach($coverage[$key] as $cover)
+            {
+                if(!in_array($cover['name'], $runBroadCoverageTypeCalled))
+                {
+                    $headerTypeRowColSpan++;
+                    $headerRow .= '<th>'.$cover['name'].'</th>';
+                    array_push($runBroadCoverageTypeCalled, $cover['name']);
+                }
+            }
+        }
+        
+        if($headerTypeRowColSpan > 0)
+        $headerTypeRow .= '<th colspan='.$headerTypeRowColSpan.
+                          ' style="text-align:center;">'.$key.'</th>';
+        //drupal_set_message($headerTypeRowColSpan);
+        //call in By the Keys
+    }
+    
+    
+    //drupal_set_message('<pre>'.print_r($runBroadCoverageTypeCalled, 1).'</pre>');
+    //Calling the Test Cases again
+    //LOOPING PER TEST CASE
+    foreach ($coverageDetails as $detail)
+    {
+      //drupal_set_message('<pre>'.print_r($detail, 1).'</pre>');
+      //drupal_set_message($detail['testCaseID']);
+      
+      drupal_set_message();
+        
+      $cssStylePatch = reportsuite::getPassFailWarningCSSStyle(
+                          $testCasesData[(String)$detail['testCaseID']]['outcome']);
+      
+      //$tableRowData .= '<tr style="'.$cssStylePatch.'">';
+      $tableRowData .= '<tr">';
+      $tableRowData .= '<td>';
+      $tableRowData .= $detail['testCaseID'];
+      $tableRowData .= '</td>';
+      
+      $tableRowData .= '<td>';
+      $tableRowData .= $detail['details']['totalPaxCount'];
+      $tableRowData .= '</td>';
+      
+      foreach ($runBroadCoverageTypeCalled as $coverageType)
+      {
+          //Loop over the coverage Info
+          foreach($detail['details']['coverage'] as $coverageKey => $coverageValue)
+          {
+              $found = false;
+              if(!empty($coverageValue))
+              {
+                  //drupal_set_message('<pre>'.print_r($coverageValue, 1).'</pre>');
+                  //drupal_set_message($coverageType);
+                  foreach($coverageValue as $key => $value)
+                  { 
+                    //drupal_set_message('<pre>'.print_r($value, 1).'</pre>');
+                    if(in_array($coverageType, $value))
+                    {
+                        //drupal_set_message('Found');
+                        $tableRowData .= '<td style="'.$cssStylePatch.'">x</td>';
+                        $found = true;
+                        break;
+                    }
+                    else
+                    {
+                        //drupal_set_message('Not Found');
+                    }
+                  }
+              }
+              
+              if($found)
+              {
+                  break;
+              }
+          }
+          
+          if(!$found)
+          {
+              $tableRowData .= '<td>-</td>';
+          }
+      }
+      
+      $tableRowData .= '</tr>';
+    }
+    
+    /////////////////
+    //Compile Table//
+    $output .= '<table>';
+    //Coverage List Row
+    //Primary Header Row
+    $output .= '<tr>';
+    $output .= $headerTypeRow;
+    $output .= '</tr>';
+    //Second Header Row
+    $output .= '<tr>';
+    $output .= '<th>TestCase ID</th>';
+    $output .= '<th>Total PAX</th>';
+    $output .= $headerRow;
+    $output .= '</tr>';
+    $output .= $tableRowData;
+    ////////////////
+    //Test Case Informations
+    
+    
+    ////////////////
+    $output .= '</table>';
+    
+    return $output;
+}
+
+
+
+function reportsuite_runAnalysis($reid, $viewBy, $spareArg)
+{
+    $tpid = reportsuitequeries::getTpidByReid($reid);
+    $customerAlias = reportsuite::customerAlias($tpid);
+    $data = array();
+    $buildParams = array();
+    
+    drupal_add_js('misc/collapse.js');
+    drupal_add_js('misc/form.js');
+    
+    drupal_set_title('Run Detailed Analysis | '.$customerAlias['name'].' Automation | Run-'.$reid);
+    
+    $data['links']['sublinks'] =  reportsuite::sublinksRunResultDetails('Run Analysis', $reid);
+    $data['links']['summary'] = l('Summary', 'reportsuite/runAnalysis/'.$reid.'/summary/null', 
+            array('attributes' => array('id' => 'pageSublinks')));
+    $data['links']['detailed'] = l('Detailed', 'reportsuite/runAnalysis/'.$reid.'/detailed/null',
+            array('attributes' => array('id' => 'pageSublinks')));
+    
+     $xmlObj = reportsuiteXmlProcessor::injectRerunPatchElementIntoXml($reid, 
+                                reportsuiteXmlProcessor::processXmlIntoObject(
+                                reportsuiteXmlProcessor::loadXmlByReid($reid)));
+    $testCasesData = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData($xmlObj); 
+    //overall Test Results
+    $otr = reportsuite::testResultsIntoTDS(
+                    reportsuiteXmlProcessor::getOverallResultsFromSuites($xmlObj));
+    $analysisRawData = reportsuiteanalysis::runResultAnalysisRawData($reid, $xmlObj, $testCasesData);
+    $grtDuration =  reportsuite::calculateTotalDurationByStartStopTime(
+                                    $xmlObj->runDateTimeStart, $xmlObj->runDateTimeStop);
+                                                         
+    
+    $data['run']['variables']['isGrid'] = false;
+    if(reportsuitequeries::getRunExecutionFieldQueryByReid($reid, 'run_mode')=='GRID')
+    {
+        $data['run']['variables']['isGrid'] = true;
+    }
+    
+    //drupal_set_message('<pre>' . print_r($analysisRawData, 1) . '</pre>');
+    //drupal_set_message('<pre>' . print_r($statisticsData, 1) . '</pre>');
+    switch($viewBy)
+    {
+        case 'summary':
+            $statisticalData = reportsuiteanalysis::processAnalysisDataToStatisticalOutput($analysisRawData);
+            $data['title']['addon'] = 'Summary';
+            $data['run']['results'] = $otr;
+            $data['run']['results']['grtDuration'] = $grtDuration;
+            $data['run']['statistics'] = $statisticalData;
+            $data['run']['resultVariable']['outputCriteria'] = array('Passed', 'Warning', 'Failed');
+            $buildParams = array(
+                    '#theme' => 'runResultAnalysis',
+                    '#data' => $data,
+                  );
+            break;
+        case 'detailed':
+            showMaintaiananceMsg();
+            drupal_set_message('<pre>' . print_r($analysisRawData, 1) . '</pre>');
+            $data['title']['addon'] = 'Detailed';
+            $data['run']['analysisDetail'] =  $analysisRawData;
+             $buildParams = array(
+                    '#theme' => 'runResultAnalysisDetail',
+                    '#data' => $data,
+                  );
+            break;
+    }
+     $build['projectSuite'] = $buildParams;
+        
+     return drupal_render($build); 
+}
+
+
+function reportsuite_demoPage($tpid, $arg2, $dept)
+{
+    drupal_set_title('Show Case Page');
+    
+    $output = '';
+    
+    reportsuiteXmlProcessor::getMailingList('WeeklyReporting', 'project');
+    
+    return $output;
+}
+
+function reportsuite_debugPage($arg1, $arg2, $arg3)
+{
+    drupal_set_title("You Are on Debug page");
+    
+    $output = "For developers play only";
+    
+    $reid = $arg1;
+    $xmlObjRaw = reportsuiteXmlProcessor::processTestResultsXml($reid);
+    $xmlObj = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData($xmlObjRaw);
+    //$xmlObj = reportsuitequeries::getScreenshotsByReid($reid, $testCaseId);
+    
+    drupal_set_message('<pre>'.print_r($xmlObj, 1).'</pre>');
+    
+    
+    //DATA STRUCTURES FOR ANALYTICAL AND SATISTICALLY
+    $analysisRawData = reportsuiteanalysis::runResultAnalysisRawData($reid);
+    $statisticsData =  reportsuiteanalysis::processAnalysisDataToStatisticalOutput($analysisRawData);
+    
+    //$trd = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData($xmlObj);
+    
+    //drupal_set_message('<pre>'.print_r($trd, 1).'</pre>');
+    
+    return $output;
+}
+
+function reportsuite_duration($seconds, $max_periods) 
+{
+    $periods = array('year' => 31536000, 'month' => 2419200, 'week' => 604800, 'day' => 86400, 'hour' => 3600, 'min' => 60, 'sec' => 1);
+    $i = 1;
+    foreach ( $periods as $period => $period_seconds ) {
+        $period_duration = floor($seconds / $period_seconds);
+        $seconds = $seconds % $period_seconds;
+        if ( $period_duration == 0 ) continue;
+        $duration[] = $period_duration .' '. $period . ($period_duration > 1 ? 's' : '');
+        $i++;
+        if ( $i > $max_periods ) break;
+    }
+    if (is_null($duration)) return 'just now';
+    return implode(' ', $duration);
+}
+
+
+function reportsuite_adminPageSecret()
+{
+    $output = l('sendEmailWeeklyReporting', 'reportsuite/probe/weeklyReportingOverall/n/n/n');
+    $output .= '<br />';
+    
+    return $output;
+}
+
+
+
+function showMaintaiananceMsg()
+{
+    drupal_set_message('NOTE: this page is either under maintanance or development. 
+        There for you may see anomalies occuring on the page you are at. 
+        Sorry for the Inconvinience.<br /><br /> Thank you.<br />PST Automation Team', 'warning');
+    
+    
+}
+
+function reportsuite_runStepWalkthrough($reid)
+{
+    $tpid = reportsuitequeries::getTpidByReid($reid);
+    $customerAlias = reportsuite::customerAlias($tpid);
+    
+    drupal_set_title($customerAlias['name'].' Automation | Run Step Walkthrough | Run-'.$reid);
+    
+    $output = "";
+   
+    $testResData = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData(
+                   reportsuiteXmlProcessor::processTestResultsXml($reid));
+    
+    $execListData = reportsuite::processExecutionListData(
+                    reportsuitequeries::getRunExecutionList($reid));
+    
+    $output .= reportsuite::sublinksRunResultDetails('RunStep Walkthrough', $reid);
+    $output .= '<br />';
+    foreach ($execListData as $scenario => $testCases)
+    {
+        $output .= '<h1>'.$scenario."</h1>";
+        
+        //$output .= '<tr><th>'.$scenario.'</th></tr>';
+        
+        
+        $output .= '<table>';
+        foreach ($testCases as $testCase => $execDataList)
+        {
+            //$output .= $testCase.'<br />';
+            $output .= '<tr><th colspan=5><center><a id="'.$testCase.'">'.$testCase.'</a></center></th></tr>';
+            $output .= '<tr><th>Step #</th><th>Action</th><th>Fail Priority</th><th>Data # 1</th><th>Data # 2</th></tr>';
+            $step = 1;
+            $caseFailed = false;
+            $stepsColorAddon = '';
+            
+            $actionStepsFailError = reportsuite::processFailingActionStepsByTestCase($testResData[$testCase]);
+            foreach ($execDataList as $execData)
+            {
+                $action = trim(str_replace('Selenium.', '', $execData[0]));
+                $contrastSel = $action === 'waitPageIsLoaded'?'Dark':'';
+               
+                if ($testResData[$testCase]['outcome'] == 'Passed')
+                {
+                     $stepsColorAddon = 'style="'.reportsuite::getPassFailWarningCSSStyle('Passed', $contrastSel).';"';
+                }
+                
+                //drupal_set_message($contrastSel);
+                if(!empty($actionStepsFailError))
+                {
+                    
+                    if(!empty($actionStepsFailError[$step]))
+                    {
+                        if(in_array($actionStepsFailError[$step], array('Failed','Warning')))
+                        {
+                            $stepsColorAddon = in_array($actionStepsFailError[$step], array('Failed','Warning'))?
+                                           'style="'.reportsuite::getPassFailWarningCSSStyle($actionStepsFailError[$step]).';"':
+                                           '';
+                        }
+                        if($actionStepsFailError[$step] == 'Failed')
+                        {
+                            $caseFailed = true;
+                        }
+                    }
+                    else
+                    {
+                        if(!$caseFailed)
+                            $stepsColorAddon = 'style="'.reportsuite::getPassFailWarningCSSStyle('Passed', $contrastSel).';"';
+                    }
+                }
+                
+               // if($stepsColorAddon == '')
+                //$bgcolorAddon = $action === 'waitPageIsLoaded'?'style="background-color:#D0D0D0;"':'';
+                
+                //$output .= $execData[0].'-'.$execData[1].'-'.$execData[2].'-'.$execData[3].'<br />';
+                $output .= '<tr '.$stepsColorAddon.'>';
+                $output .= '<td>'.$step.'</td>';
+                $output .= '<td>'.$action.'</td>';
+                $output .= '<td>'.$execData[1].'</td>';
+                $output .= '<td>'.$execData[2].'</td>';
+                $output .= '<td>'.$execData[3].'</td>';
+                $output .= '</tr>';
+                $step++;
+            }
+        }
+        $output .= '</table>';
+    }
+    
+    
+    return $output;
+}
+
+function reportsuite_runStepWalkthroughByTestCaseId($reid, $testCaseSpecified)
+{
+   
+    $output = '';
+    foreach ($execListData as $scenario => $testCases)
+    {
+        foreach ($testCases as $testCase => $execDataList)
+        {
+            if($testCase === $testCaseSpecified)
+            {
+                $output .= '<table>';
+                //$output .= $testCase.'<br />';
+                $output .= '<tr><th colspan=5><center><a id="'.$testCase.'">'.$testCase.'</a></center></th></tr>';
+                $output .= '<tr><th>Step #</th><th>Action</th><th>Fail Priority</th><th>Data # 1</th><th>Data # 2</th></tr>';
+                $step = 1;
+                $caseFailed = false;
+                $stepsColorAddon = '';
+
+                $actionStepsFailError = reportsuite::processFailingActionStepsByTestCase($testResData[$testCase]);
+                foreach ($execDataList as $execData)
+                {
+                    $action = trim(str_replace('Selenium.', '', $execData[0]));
+                    $contrastSel = $action === 'waitPageIsLoaded'?'Dark':'';
+
+                    if ($testResData[$testCase]['outcome'] == 'Passed')
+                    {
+                         $stepsColorAddon = 'style="'.reportsuite::getPassFailWarningCSSStyle('Passed', $contrastSel).';"';
+                    }
+
+                    //drupal_set_message($contrastSel);
+                    if(!empty($actionStepsFailError))
+                    {
+
+                        if(!empty($actionStepsFailError[$step]))
+                        {
+                            if(in_array($actionStepsFailError[$step], array('Failed','Warning')))
+                            {
+                                $stepsColorAddon = in_array($actionStepsFailError[$step], array('Failed','Warning'))?
+                                               'style="'.reportsuite::getPassFailWarningCSSStyle($actionStepsFailError[$step]).';"':
+                                               '';
+                            }
+                            if($actionStepsFailError[$step] == 'Failed')
+                            {
+                                $caseFailed = true;
+                            }
+                        }
+                        else
+                        {
+                            if(!$caseFailed)
+                                $stepsColorAddon = 'style="'.reportsuite::getPassFailWarningCSSStyle('Passed', $contrastSel).';"';
+                        }
+                    }
+
+                   // if($stepsColorAddon == '')
+                    //$bgcolorAddon = $action === 'waitPageIsLoaded'?'style="background-color:#D0D0D0;"':'';
+
+                    //$output .= $execData[0].'-'.$execData[1].'-'.$execData[2].'-'.$execData[3].'<br />';
+                    $output .= '<tr '.$stepsColorAddon.'>';
+                    $output .= '<td>'.$step.'</td>';    
+                    $output .= '<td>'.$action.'</td>';
+                    $output .= '<td>'.$execData[1].'</td>';
+                    $output .= '<td>'.$execData[2].'</td>';
+                    $output .= '<td>'.$execData[3].'</td>';
+                    $output .= '</tr>';
+                    $step++;
+                }
+            $output .= '</table>';
+            }
+        }
+    }
+    return $output;
+}
+
+function reportsuite_resultDetailDebuggingPage($reid, $debuggingCase)
+{
+    $tpid = reportsuitequeries::getTpidByReid($reid);
+    $tpObj = reportsuitequeries::getTpbyTpid($tpid);
+    $customerAlias = reportsuite::customerAlias($tpid);
+    $output = '';
+    reportsuite::probeTestCases($reid, $tpid);
+   
+    drupal_set_title($customerAlias['name'].' Automation | Run Result Detail | Run-'.$reid);
+    
+    /// DATA initializer Section ///
+    //$testResults = reportsuiteXmlProcessor::processTestResults($reid);
+    $xmlObj = reportsuiteXmlProcessor::processTestResultsXml($reid, true);
+    $testResults = reportsuiteXmlProcessor::getOverallResultsFromSuites($xmlObj);
+    $testResData = reportsuiteXmlProcessor::processXmlIntoTestCasesResultData($xmlObj);
+    $totalDurationByXML = reportsuite::processTotalDurationBySuite($testResData);
+    $execListData = reportsuite::processExecutionListData(
+                                 reportsuitequeries::getRunExecutionList($reid));
+    $runExecutionDetail = reportsuitequeries::getRunExecutionDetailsByReid($reid);
+    $screenshots = reportsuitequeries::getScreenshotsByReid($reid);
+    
+    $prevReid = reportsuitequeries::getReidNearActualReid($reid, $tpid, 'PST', 'previous');
+    $nextReid = reportsuitequeries::getReidNearActualReid($reid, $tpid, 'PST', 'next');
+    
+    $otr = reportsuite::testResultsIntoTDS($testResults);
+    
+    
+    switch($debuggingCase)
+    {
+        case 'xmlObject':
+            drupal_set_message('<pre>' . print_r($xmlObj, 1) . '</pre>');
+            break;
+        case 'testResult':
+            drupal_set_message('<pre>' . print_r($testResults, 1) . '</pre>');
+            break;
+        case 'testResultData':
+            drupal_set_message('<pre>' . print_r($testResData, 1) . '</pre>');
+            break;
+        case 'processTestResultsXml':
+            $xmlObj = reportsuiteXmlProcessor::processXmlIntoObject(
+                    reportsuiteXmlProcessor::loadXmlByReid($reid));
+        
+            $rerunData = reportsuitequeries::getAllRerunDataByParentReid($reid);
+            drupal_set_message('BeforeRerun');
+            drupal_set_message('<pre>' . print_r($xmlObj, 1) . '</pre>');
+            if(!empty($rerunData))
+            {
+                drupal_set_message('rerun Data');
+                drupal_set_message('<pre>' . print_r($rerunData, 1) . '</pre>');
+                $xmlObj = reportsuiteXmlProcessor::recalculateResults($reid, 
+                        reportsuiteXmlProcessor::mergeRerunWithMaster(
+                                $xmlObj, $rerunData, $replaceMasterRerun));
+                drupal_set_message('<pre>' . print_r($xmlObj, 1) . '</pre>');
+            }
+            drupal_set_message("End Result");
+            drupal_set_message('<pre>' . print_r($xmlObj, 1) . '</pre>');
+            break;
+        default:
+            drupal_set_message('Please use the switches in 2nd Arg');
+            break;
+    }
+    
+    return $output;
+}
